@@ -7,7 +7,7 @@ from datetime import datetime
 # Streamlit Page Config
 # -----------------------------
 st.set_page_config(
-    page_title="Temperature Converter Pro",
+    page_title="C/F Temperature Converter",
     page_icon="🌡",
     layout="centered"
 )
@@ -15,12 +15,6 @@ st.set_page_config(
 # Custom CSS (UI สไตล์การ์ด + Responsive)
 st.markdown("""
 <style>
-/* Center main container */
-.main {
-    padding-top: 1.5rem;
-}
-
-/* Glass card */
 .card {
     background: rgba(255,255,255,0.08);
     border-radius: 16px;
@@ -29,69 +23,48 @@ st.markdown("""
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.1);
 }
-
-/* Mobile adjustments */
+.output-number {
+    font-size: 38px;
+    font-weight: 700;
+}
 @media (max-width: 640px) {
     .card {
         padding: 14px;
     }
 }
-
-/* Big output number */
-.output-number {
-    font-size: 38px;
-    font-weight: 700;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# Conversion functions
+# Conversion functions (C <-> F)
 # -----------------------------
-def to_kelvin(v, unit):
-    if unit == 'C': return v + 273.15
-    if unit == 'F': return (v - 32) * 5/9 + 273.15
-    if unit == 'K': return v
-    if unit == 'R': return v * 5/9
-
-def from_kelvin(k, unit):
-    if unit == 'C': return k - 273.15
-    if unit == 'F': return (k - 273.15) * 9/5 + 32
-    if unit == 'K': return k
-    if unit == 'R': return k * 9/5
-
-def fmt(x):
-    return f"{x:.6g}"
+def c_to_f(c): return c * 9/5 + 32
+def f_to_c(f): return (f - 32) * 5/9
+def fmt(x): return f"{x:.6g}"
 
 units = {
     "Celsius (°C)": "C",
-    "Fahrenheit (°F)": "F",
-    "Kelvin (K)": "K",
-    "Rankine (°R)": "R",
+    "Fahrenheit (°F)": "F"
 }
 
 # -----------------------------
 # Title
 # -----------------------------
 st.markdown("<div class='card'>", unsafe_allow_html=True)
-st.title("🌡 Temperature Converter Pro")
-st.caption("UI แบบสวย • รองรับมือถือ • พร้อมกราฟเปรียบเทียบค่าอุณหภูมิ")
+st.title("🌡 C/F Temperature Converter")
+st.caption("แปลงค่าอุณหภูมิระหว่าง °C ↔ °F พร้อมกราฟและประวัติ")
 st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------
 # Input Card
 # -----------------------------
 st.markdown("<div class='card'>", unsafe_allow_html=True)
-
 col1, col2 = st.columns(2)
 with col1:
     val = st.number_input("ค่าอุณหภูมิ", value=25.0, step=0.1)
-
 with col2:
     from_unit = st.selectbox("จากหน่วย", list(units.keys()))
-
-to_unit = st.selectbox("เป็นหน่วย", list(units.keys()))
-
+to_unit = "Fahrenheit (°F)" if from_unit.startswith("C") else "Celsius (°C) "
 convert_btn = st.button("🔁 แปลงค่า", use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -99,13 +72,16 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Calculate
 # -----------------------------
 if convert_btn:
-    k = to_kelvin(val, units[from_unit])
-    out = from_kelvin(k, units[to_unit])
+    if from_unit.startswith("C"):
+        out = c_to_f(val)
+    else:
+        out = f_to_c(val)
 
+    # Show result
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.subheader("ผลลัพธ์")
     st.markdown(f"<div class='output-number'>{fmt(out)} {to_unit.split()[-1]}</div>", unsafe_allow_html=True)
-    st.write(f"แปลงจาก {fmt(val)} {from_unit} → {fmt(out)} {to_unit}")
+    st.write(f"{fmt(val)} {from_unit} → {fmt(out)} {to_unit}")
 
     # Save history
     if "history" not in st.session_state:
@@ -114,27 +90,24 @@ if convert_btn:
         0,
         f"{datetime.now().strftime('%H:%M:%S')} — {fmt(val)} {from_unit} → {fmt(out)} {to_unit}"
     )
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------
-    # GRAPH SECTION (NEW!)
+    # Graph C/F only
     # -----------------------------
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.subheader("📊 กราฟเปรียบเทียบอุณหภูมิในทุกหน่วย")
+    st.subheader("📊 กราฟเปรียบเทียบ °C ↔ °F")
 
-    # Convert to all 4 units
-    temp_data = {
-        "Unit": ["°C", "°F", "K", "°R"],
-        "Value": [
-            from_kelvin(k, "C"),
-            from_kelvin(k, "F"),
-            from_kelvin(k, "K"),
-            from_kelvin(k, "R"),
-        ]
-    }
-
-    df = pd.DataFrame(temp_data)
+    if from_unit.startswith("C"):
+        df = pd.DataFrame({
+            "Unit": ["°C", "°F"],
+            "Value": [val, out]
+        })
+    else:
+        df = pd.DataFrame({
+            "Unit": ["°C", "°F"],
+            "Value": [out, val]
+        })
 
     chart = (
         alt.Chart(df)
@@ -144,7 +117,7 @@ if convert_btn:
             y=alt.Y("Value", title="ค่าอุณหภูมิ"),
             tooltip=["Unit", "Value"]
         )
-        .properties(height=300)
+        .properties(height=250)
     )
 
     st.altair_chart(chart, use_container_width=True)
@@ -155,7 +128,6 @@ if convert_btn:
 # -----------------------------
 st.markdown("<div class='card'>", unsafe_allow_html=True)
 st.subheader("📜 ประวัติการแปลง")
-
 if "history" in st.session_state and len(st.session_state.history) > 0:
     for item in st.session_state.history[:10]:
         st.write("- " + item)
@@ -165,5 +137,4 @@ else:
 if st.button("🗑 ล้างประวัติ", use_container_width=True):
     st.session_state.history = []
     st.warning("ล้างประวัติแล้ว!")
-
 st.markdown("</div>", unsafe_allow_html=True)
