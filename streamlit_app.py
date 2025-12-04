@@ -92,40 +92,7 @@ if convert_btn:
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # -----------------------------
-    # Graph C/F only
-    # -----------------------------
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.subheader("📊 กราฟเปรียบเทียบ °C ↔ °F")
 
-    if from_unit.startswith("C"):
-        df = pd.DataFrame({
-            "Unit": ["°C", "°F"],
-            "Value": [val, out]
-        })
-    else:
-        df = pd.DataFrame({
-            "Unit": ["°C", "°F"],
-            "Value": [out, val]
-        })
-
-    chart = (
-        alt.Chart(df)
-        .mark_bar()
-        .encode(
-            x=alt.X("Unit", title="หน่วย"),
-            y=alt.Y("Value", title="ค่าอุณหภูมิ"),
-            tooltip=["Unit", "Value"]
-        )
-        .properties(height=250)
-    )
-
-    st.altair_chart(chart, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# -----------------------------
-# History
-# -----------------------------
 st.markdown("<div class='card'>", unsafe_allow_html=True)
 st.subheader("📜 ประวัติการแปลง")
 if "history" in st.session_state and len(st.session_state.history) > 0:
